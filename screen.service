@@ -1,0 +1,14 @@
+[Unit]
+Description=Run AOS screen app
+After=multi-user.target
+
+[Service]
+Type=forking
+PIDFile=/var/run/aos/%i.pid
+ExecStart=/home/max/aos-screen/run.sh
+User=max
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
