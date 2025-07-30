@@ -3,7 +3,7 @@ Description=Run AOS screen app
 After=multi-user.target
 
 [Service]
-Type=forking
+Type=simple
 PIDFile=/var/run/aos/%i.pid
 ExecStart=/home/max/aos-screen/run.sh
 User=max

@@ -1,3 +1,4 @@
+import os
 import sys
 import pygame
 import cv2
@@ -110,8 +111,6 @@ def main():
                     if name_index < 0:
                         name_index = 0
                     name_text = name_options[name_index]
-
-                
                 
                     if event.key == pygame.K_RETURN:
                         print("enter")
@@ -129,6 +128,11 @@ def main():
                             name_text = name_text[:-1]
                         else:
                             name_text += chr(event.key)
+
+                if event.key == pygame.K_q and pygame.key.get_mods() & pygame.KMOD_CTRL:
+                    print("Shutting down!")
+                    os.system("shutdown -h now")
+
 
 
         success, video_image = video.read()
