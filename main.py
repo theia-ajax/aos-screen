@@ -2,7 +2,7 @@ import os
 import sys
 import pygame
 import cv2
-from theia import *
+from theia.sim import SimRenderer
 
 # Define some colors
 BLACK = (0, 0, 0)
@@ -12,12 +12,15 @@ RED = (255, 0, 0)
 
 TEXT_PADDING_R = 50
 
+BG_MODE_VIDEO = 0
+BG_MODE_SIM = 1
+
 font_sizes = [150, 120]
 padding_by_font_size = {150: 80, 120: 100}
 
 pygame.init()
 
-function_buttons = [[1073742083, 44], [1073742082, 46], [pygame.K_MINUS], [pygame.K_EQUALS]]
+function_buttons = [[1073742083, 44], [1073742082, 46], [pygame.K_LEFTBRACKET], [pygame.K_RIGHTBRACKET]]
 
 debug = False
 if len(sys.argv) > 1 and sys.argv[1] == "debug":
@@ -36,7 +39,9 @@ success, video_image = video.read()
 fps = video.get(cv2.CAP_PROP_FPS)
 clock = pygame.time.Clock()
 
-sim = SimRenderer(log_level=LOG_LEVEL_INFO if debug else LOG_LEVEL_WARNING, fps=fps)
+sim = SimRenderer(
+    log_level=SimRenderer.LOG_INFO if debug else SimRenderer.LOG_WARNING,
+    fps=fps)
 
 name_options = [
     "Solvent",
@@ -47,6 +52,13 @@ name_options = [
 
 name_index = 0
 name_text = name_options[name_index]
+
+bg_mode_options = [
+    BG_MODE_VIDEO,
+    BG_MODE_SIM,
+]
+bg_mode_index = 0
+bg_mode = bg_mode_options[bg_mode_index]
 
 # def read_name():
 #     with open("display.txt", "r") as namefile:
@@ -80,11 +92,8 @@ MODE_SCROLL = 0
 MODE_ENTER = 1
 mode = MODE_SCROLL
 
-(BG_MODE_VIDEO, BG_MODE_SIM, BG_MODE_COUNT) = (0, 1, 2)
-bg_mode = BG_MODE_VIDEO
-
 def main():
-    global done, name_index, name_text, mode, bg_mode
+    global done, name_index, name_text, mode, bg_mode_index, bg_mode
     
     # pygame.time.set_timer(UPDATE_NAME_EVENT, 2000)
 
@@ -105,23 +114,21 @@ def main():
                 if event.key == pygame.K_ESCAPE:
                     done = True
                 
-                inc = 0
                 if mode == MODE_SCROLL:
                     if event.key in function_buttons[0]:
                         print("-1!")
-                        inc = -1
+                        name_index = (name_index - 1) % len(name_options)
                     elif event.key in function_buttons[1]:
                         print("+1!")
-                        inc = 1
+                        name_index = (name_index + 1) % len(name_options)
                     elif event.key in function_buttons[2]:
-                        bg_mode = (bg_mode + 1) % BG_MODE_COUNT
+                        bg_mode_index = (bg_mode_index + 1) % len(bg_mode_options)
                     elif event.key in function_buttons[3]:
-                        bg_mode = (bg_mode - 1) % BG_MODE_COUNT
+                        bg_mode_index = (bg_mode_index - 1) % len(bg_mode_options)
 
-                    # inc = 1 if event.y > 0 else -1
-                    name_index = (name_index + inc) % len(name_options)
                     name_text = name_options[name_index]
-                
+                    bg_mode = bg_mode_options[bg_mode_index]
+
                     if event.key == pygame.K_RETURN:
                         print("enter")
                         mode = MODE_ENTER
