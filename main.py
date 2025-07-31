@@ -2,6 +2,7 @@ import os
 import sys
 import pygame
 import cv2
+from theia import *
 
 # Define some colors
 BLACK = (0, 0, 0)
@@ -16,10 +17,14 @@ padding_by_font_size = {150: 80, 120: 100}
 
 pygame.init()
 
-function_buttons = [[1073742083, 44], [1073742082, 46]]
+function_buttons = [[1073742083, 44], [1073742082, 46], [pygame.K_MINUS], [pygame.K_EQUALS]]
+
+debug = False
+if len(sys.argv) > 1 and sys.argv[1] == "debug":
+    debug = True
 
 size = (1480, 320)
-if len(sys.argv) > 1 and sys.argv[1] == "debug":
+if debug:
     screen = pygame.display.set_mode(size)
 else:
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -31,6 +36,7 @@ success, video_image = video.read()
 fps = video.get(cv2.CAP_PROP_FPS)
 clock = pygame.time.Clock()
 
+sim = SimRenderer(log_level=LOG_LEVEL_INFO if debug else LOG_LEVEL_WARNING, fps=fps)
 
 name_options = [
     "Solvent",
@@ -74,10 +80,12 @@ MODE_SCROLL = 0
 MODE_ENTER = 1
 mode = MODE_SCROLL
 
+(BG_MODE_VIDEO, BG_MODE_SIM, BG_MODE_COUNT) = (0, 1, 2)
+bg_mode = BG_MODE_VIDEO
+
 def main():
-    global done, name_index, name_text, mode
+    global done, name_index, name_text, mode, bg_mode
     
-    clock.tick(fps)
     # pygame.time.set_timer(UPDATE_NAME_EVENT, 2000)
 
     while not done:
@@ -93,6 +101,9 @@ def main():
 
             elif event.type == pygame.KEYDOWN:
                 print(event.key)
+
+                if event.key == pygame.K_ESCAPE:
+                    done = True
                 
                 inc = 0
                 if mode == MODE_SCROLL:
@@ -102,14 +113,13 @@ def main():
                     elif event.key in function_buttons[1]:
                         print("+1!")
                         inc = 1
+                    elif event.key in function_buttons[2]:
+                        bg_mode = (bg_mode + 1) % BG_MODE_COUNT
+                    elif event.key in function_buttons[3]:
+                        bg_mode = (bg_mode - 1) % BG_MODE_COUNT
 
                     # inc = 1 if event.y > 0 else -1
-                    name_index = name_index + inc
-                    
-                    if name_index == len(name_options):
-                        name_index = len(name_options) - 1
-                    if name_index < 0:
-                        name_index = 0
+                    name_index = (name_index + inc) % len(name_options)
                     name_text = name_options[name_index]
                 
                     if event.key == pygame.K_RETURN:
@@ -135,14 +145,20 @@ def main():
 
 
 
-        success, video_image = video.read()
-        if success:
-            video_surf = pygame.image.frombuffer(video_image.tobytes(), video_image.shape[1::-1], "BGR")
-            # video_surf = pygame.transform.rotate(video_surf, 90)
-            # video_surf = pygame.transform.scale_by(video_surf, (0.8, 0.5))
-            screen.blit(video_surf, (0, 0))
-        else:
-            video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        if bg_mode == BG_MODE_VIDEO:
+            success, video_image = video.read()
+            if success:
+                video_surf = pygame.image.frombuffer(video_image.tobytes(), video_image.shape[1::-1], "BGR")
+                # video_surf = pygame.transform.rotate(video_surf, 90)
+                # video_surf = pygame.transform.scale_by(video_surf, (0.8, 0.5))
+                screen.blit(video_surf, (0, 0))
+            else:
+                video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        elif bg_mode == BG_MODE_SIM:
+            screen.fill('black')
+            with sim.next_frame() as sim_surf:
+                scaled_surf = pygame.transform.smoothscale(sim_surf, (screen.get_width(), screen.get_height()))
+                screen.blit(scaled_surf, (0, 0))
 
         # screen.fill(WHITE)
         text_surface = get_text_surface()
@@ -152,6 +168,7 @@ def main():
         screen.blit(text_surface, (1480 - text_size[0] - TEXT_PADDING_R, padding_by_font_size[get_font_size()]))
 
         pygame.display.flip()
+        clock.tick(fps)
 
 
 if __name__ == "__main__":
